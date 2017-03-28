@@ -50,3 +50,10 @@ struct msgb *gsm0808_enc_channel_type(struct gsm0808_channel_type *ct);
 /* Decode Channel Type element */
 struct gsm0808_channel_type *gsm0808_dec_channel_type(const void *ctx,
 						      struct msgb *msg);
+
+/* Encode Encryption Information element */
+struct msgb *gsm0808_enc_encrypt_info(struct gsm0808_encrypt_info *ei);
+
+/* Decode Encryption Information element */
+struct gsm0808_encrypt_info *gsm0808_dec_encrypt_info(const void *ctx,
+						      struct msgb *msg);

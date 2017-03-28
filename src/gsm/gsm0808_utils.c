@@ -34,6 +34,7 @@
 
 #define CHANNEL_TYPE_ELEMENT_MAXLEN 11
 #define CHANNEL_TYPE_ELEMENT_MINLEN 3
+#define ENCRYPT_INFO_ELEMENT_MINLEN 1
 
 /* Encode AoIP transport address element */
 struct msgb *gsm0808_enc_aoip_trasp_addr(struct sockaddr_storage *ss)
@@ -355,4 +356,73 @@ struct gsm0808_channel_type *gsm0808_dec_channel_type(const void *ctx,
 	ct->perm_spch_len = i + 1;
 
 	return ct;
+}
+
+/* Encode Encryption Information element */
+struct msgb *gsm0808_enc_encrypt_info(struct gsm0808_encrypt_info *ei)
+{
+	struct msgb *msg;
+	unsigned int i;
+	uint8_t perm_algo = 0;
+	uint8_t *ptr;
+
+	OSMO_ASSERT(ei);
+	OSMO_ASSERT(ei->key_len <= ARRAY_SIZE(ei->key));
+	OSMO_ASSERT(ei->perm_algo_len <= ENCRY_INFO_PERM_ALGO_MAXLEN);
+
+	msg =
+	    msgb_alloc(ELEMENT_MSGB_MAXLEN, "Encryption Information Element");
+	if (!msg)
+		return NULL;
+
+	for (i = 0; i < ei->perm_algo_len; i++) {
+		/* Note: gsm_08_08.h defines the permitted algorithms
+		 * as an enum which ranges from 0x01 to 0x08 */
+		OSMO_ASSERT(ei->perm_algo[i] != 0);
+		OSMO_ASSERT(ei->perm_algo[i] <= ENCRY_INFO_PERM_ALGO_MAXLEN);
+		perm_algo |= (1 << (ei->perm_algo[i] - 1));
+	}
+
+	msgb_put_u8(msg, perm_algo);
+	ptr = msgb_put(msg, ei->key_len);
+	memcpy(ptr, ei->key, ei->key_len);
+
+	return msg;
+}
+
+/* Decode Encryption Information element */
+struct gsm0808_encrypt_info *gsm0808_dec_encrypt_info(const void *ctx,
+						      struct msgb *msg)
+{
+	struct gsm0808_encrypt_info *ei;
+	uint8_t perm_algo;
+	unsigned int i;
+	uint8_t *ptr;
+	unsigned int perm_algo_len = 0;
+
+	if (!msg)
+		return NULL;
+
+	/* Malformed element */
+	if (msg->len < ENCRYPT_INFO_ELEMENT_MINLEN)
+		return NULL;
+
+	ei = talloc_zero(ctx, struct gsm0808_encrypt_info);
+	if (!ei)
+		return NULL;
+
+	perm_algo = msgb_pull_u8(msg);
+	for (i = 0; i < ENCRY_INFO_PERM_ALGO_MAXLEN; i++) {
+		if (perm_algo & (1 << i)) {
+			ei->perm_algo[perm_algo_len] = i + 1;
+			perm_algo_len++;
+		}
+	}
+	ei->perm_algo_len = perm_algo_len;
+
+	ei->key_len = msg->len;
+	ptr = msgb_get(msg, msg->len);
+	memcpy(ei->key, ptr, ei->key_len);
+
+	return ei;
 }

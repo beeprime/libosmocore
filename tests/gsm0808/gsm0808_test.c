@@ -619,6 +619,42 @@ static void test_gsm0808_enc_dec_channel_type(const void *ctx)
 	msgb_free(ct_enc);
 }
 
+
+static void test_gsm0808_enc_dec_encrypt_info(const void *ctx)
+{
+	struct gsm0808_encrypt_info ei;
+	struct msgb *ei_enc;
+	uint8_t ei_enc_expected[] =
+	    { 0x03, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x23, 0x42 };
+	struct gsm0808_encrypt_info *ei_dec;
+
+	memset(&ei, 0, sizeof(ei));
+	ei.perm_algo[0] = GSM0808_ALG_ID_A5_0;
+	ei.perm_algo[1] = GSM0808_ALG_ID_A5_1;
+	ei.perm_algo_len = 2;
+	ei.key[0] = 0xaa;
+	ei.key[1] = 0xbb;
+	ei.key[2] = 0xcc;
+	ei.key[3] = 0xdd;
+	ei.key[4] = 0xee;
+	ei.key[5] = 0xff;
+	ei.key[6] = 0x23;
+	ei.key[7] = 0x42;
+	ei.key_len = 8;
+
+	ei_enc = gsm0808_enc_encrypt_info(&ei);
+	OSMO_ASSERT(ei_enc);
+	OSMO_ASSERT(memcmp(ei_enc_expected, ei_enc->data, ei_enc->len) == 0);
+
+	ei_dec = gsm0808_dec_encrypt_info(ctx, ei_enc);
+	OSMO_ASSERT(ei_dec);
+	OSMO_ASSERT(ei_enc->len == 0);
+	OSMO_ASSERT(memcmp(&ei, ei_dec, sizeof(ei)) == 0);
+
+	talloc_free(ei_dec);
+	msgb_free(ei_enc);
+}
+
 int main(int argc, char **argv)
 {
 	void *ctx;
@@ -649,6 +685,7 @@ int main(int argc, char **argv)
 	test_gsm0808_enc_dec_speech_codec_ext_with_cfg(ctx);
 	test_gsm0808_enc_dec_speech_codec_list(ctx);
 	test_gsm0808_enc_dec_channel_type(ctx);
+	test_gsm0808_enc_dec_encrypt_info(ctx);
 
 	printf("Done\n");
 
