@@ -59,6 +59,9 @@ struct msgb *gsm0808_create_assignment_failure_aoip(uint8_t cause,
 						    struct llist_head *scl);
 struct msgb *gsm0808_create_assignment_failure(uint8_t cause, uint8_t *rr_cause);
 struct msgb *gsm0808_create_clear_rqst(uint8_t cause);
+struct msgb *gsm0808_create_paging(char *imsi, uint32_t *tmsi,
+				   struct gsm0808_cell_id_list *cil,
+				   uint8_t *chan_needed);
 
 struct msgb *gsm0808_create_dtap(struct msgb *msg, uint8_t link_id);
 void gsm0808_prepend_dtap_header(struct msgb *msg, uint8_t link_id);
