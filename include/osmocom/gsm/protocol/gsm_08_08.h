@@ -452,3 +452,17 @@ struct gsm0808_encrypt_info {
 	uint8_t key[ENCRY_INFO_KEY_MAXLEN];
 	unsigned int key_len;
 };
+
+/* 3GPP TS 48.008 3.2.2.10 Cell Identifier List */
+struct gsm0808_cell_id_list {
+	uint8_t id_discr;
+	struct llist_head id_list;
+};
+
+/* 3GPP TS 48.008 3.2.2.10 Cell Identifier List
+ * (Coding of i-th Cell Identification for Cell
+ * identification discriminator = 0101) */
+struct gsm0808_cell_id_lac {
+	struct llist_head list;
+	uint16_t lac;
+};

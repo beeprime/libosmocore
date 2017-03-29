@@ -57,3 +57,10 @@ struct msgb *gsm0808_enc_encrypt_info(struct gsm0808_encrypt_info *ei);
 /* Decode Encryption Information element */
 struct gsm0808_encrypt_info *gsm0808_dec_encrypt_info(const void *ctx,
 						      struct msgb *msg);
+
+/* Encode Cell Identifier List element */
+struct msgb *gsm0808_enc_cell_id_list(struct gsm0808_cell_id_list *cil);
+
+/* Decode Cell Identifier List element */
+struct gsm0808_cell_id_list *gsm0808_dec_cell_id_list(const void *ctx,
+						      struct msgb *msg);

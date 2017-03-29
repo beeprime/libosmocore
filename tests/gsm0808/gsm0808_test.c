@@ -619,7 +619,6 @@ static void test_gsm0808_enc_dec_channel_type(const void *ctx)
 	msgb_free(ct_enc);
 }
 
-
 static void test_gsm0808_enc_dec_encrypt_info(const void *ctx)
 {
 	struct gsm0808_encrypt_info ei;
@@ -655,6 +654,91 @@ static void test_gsm0808_enc_dec_encrypt_info(const void *ctx)
 	msgb_free(ei_enc);
 }
 
+static void test_gsm0808_enc_dec_cell_id_list_lac(const void *ctx)
+{
+	struct gsm0808_cell_id_lac lac1;
+	struct gsm0808_cell_id_lac lac2;
+	struct gsm0808_cell_id_lac lac3;
+	struct msgb *msg;
+	struct gsm0808_cell_id_list cil;
+	struct gsm0808_cell_id_list *cil_decoded;
+	struct gsm0808_cell_id_lac *lac;
+
+	cil.id_discr = CELL_IDENT_LAC;
+	INIT_LLIST_HEAD(&cil.id_list);
+	lac1.lac = 0x1111;
+	lac2.lac = 0x2222;
+	lac3.lac = 0x3333;
+	llist_add(&lac1.list, &cil.id_list);
+	llist_add(&lac2.list, &cil.id_list);
+	llist_add(&lac3.list, &cil.id_list);
+
+	msg = gsm0808_enc_cell_id_list(&cil);
+	OSMO_ASSERT(msg);
+	cil_decoded = gsm0808_dec_cell_id_list(ctx, msg);
+	OSMO_ASSERT(cil_decoded);
+	OSMO_ASSERT(msg->len == 0);
+	OSMO_ASSERT(cil_decoded->id_discr == cil.id_discr);
+
+	llist_for_each_entry(lac, &cil_decoded->id_list, list) {
+		OSMO_ASSERT((lac->lac == lac1.lac) || (lac->lac == lac2.lac)
+			    || (lac->lac == lac3.lac))
+	}
+
+	talloc_free(cil_decoded);
+	msgb_free(msg);
+}
+
+static void test_gsm0808_enc_dec_cell_id_list_single_lac(const void *ctx)
+{
+	struct gsm0808_cell_id_lac lac_enc;
+	struct msgb *msg;
+	struct gsm0808_cell_id_list cil;
+	struct gsm0808_cell_id_list *cil_decoded;
+	struct gsm0808_cell_id_lac *lac;
+	uint8_t cil_enc_expected[] = {0x05, 0x23, 0x42};
+	cil.id_discr = CELL_IDENT_LAC;
+	INIT_LLIST_HEAD(&cil.id_list);
+	lac_enc.lac = 0x2342;
+	llist_add(&lac_enc.list, &cil.id_list);
+
+	msg = gsm0808_enc_cell_id_list(&cil);
+	OSMO_ASSERT(msg);
+	OSMO_ASSERT(memcmp(cil_enc_expected,msg->data,msg->len) == 0);
+
+	cil_decoded = gsm0808_dec_cell_id_list(ctx, msg);
+	OSMO_ASSERT(cil_decoded);
+	OSMO_ASSERT(msg->len == 0);
+	OSMO_ASSERT(cil_decoded->id_discr == cil.id_discr);
+
+	llist_for_each_entry(lac, &cil_decoded->id_list, list) {
+		OSMO_ASSERT(lac->lac == lac_enc.lac)
+	}
+
+	talloc_free(cil_decoded);
+	msgb_free(msg);
+}
+
+static void test_gsm0808_enc_dec_cell_id_list_bss(const void *ctx)
+{
+	struct msgb *msg;
+	struct gsm0808_cell_id_list cil;
+	struct gsm0808_cell_id_list *cil_decoded;
+
+	cil.id_discr = CELL_IDENT_BSS;
+
+	msg = gsm0808_enc_cell_id_list(&cil);
+	OSMO_ASSERT(msg);
+
+	cil_decoded = gsm0808_dec_cell_id_list(ctx, msg);
+	OSMO_ASSERT(cil_decoded);
+	OSMO_ASSERT(msg->len == 0);
+	OSMO_ASSERT(cil_decoded->id_discr == cil.id_discr);
+
+	talloc_free(cil_decoded);
+	msgb_free(msg);
+}
+
 int main(int argc, char **argv)
 {
 	void *ctx;
@@ -686,6 +770,9 @@ int main(int argc, char **argv)
 	test_gsm0808_enc_dec_speech_codec_list(ctx);
 	test_gsm0808_enc_dec_channel_type(ctx);
 	test_gsm0808_enc_dec_encrypt_info(ctx);
+	test_gsm0808_enc_dec_cell_id_list_lac(ctx);
+	test_gsm0808_enc_dec_cell_id_list_single_lac(ctx);
+	test_gsm0808_enc_dec_cell_id_list_bss(ctx);
 
 	printf("Done\n");
 
