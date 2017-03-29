@@ -41,6 +41,11 @@ struct msgb *gsm0808_create_cipher_reject(uint8_t cause);
 struct msgb *gsm0808_create_classmark_update(const uint8_t *cm2, uint8_t cm2_len,
 					     const uint8_t *cm3, uint8_t cm3_len);
 struct msgb *gsm0808_create_sapi_reject(uint8_t link_id);
+struct msgb *gsm0808_create_assignment(struct gsm0808_channel_type *ct,
+				       uint16_t *cic,
+				       struct sockaddr_storage *ss,
+				       struct llist_head *scl,
+				       uint32_t *ci);
 struct msgb *gsm0808_create_assignment_completed_aoip(uint8_t rr_cause,
 						      uint8_t chosen_channel,
 						      uint8_t encr_alg_id,

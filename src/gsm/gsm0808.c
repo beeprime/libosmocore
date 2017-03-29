@@ -255,6 +255,86 @@ struct msgb *gsm0808_create_sapi_reject(uint8_t link_id)
 	return msg;
 }
 
+struct msgb *gsm0808_create_assignment(struct gsm0808_channel_type *ct,
+				       uint16_t *cic,
+				       struct sockaddr_storage *ss,
+				       struct llist_head *scl, uint32_t *ci)
+{
+	/* See also: 3GPP TS 48.008 3.2.1.1 ASSIGNMENT REQUEST */
+	struct msgb *msg;
+	struct msgb *ct_encoded;
+	uint16_t cic_sw;
+	struct msgb *ss_encoded;
+	struct msgb *scl_encoded;
+	uint32_t ci_sw;
+
+	/* Mandatory emelent! */
+	OSMO_ASSERT(ct);
+
+	msg =
+	    msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
+				"bssmap: ass req");
+	if (!msg)
+		return NULL;
+
+	/* Message Type 3.2.2.1 */
+	msgb_v_put(msg, BSS_MAP_MSG_ASSIGMENT_RQST);
+
+	/* Channel Type 3.2.2.11 */
+	ct_encoded = gsm0808_enc_channel_type(ct);
+	if (!ct_encoded) {
+		msgb_free(msg);
+		return NULL;
+	}
+	msgb_tlv_put(msg, GSM0808_IE_CHANNEL_TYPE, ct_encoded->len,
+		     ct_encoded->data);
+	msgb_free(ct_encoded);
+
+	/* Circuit Identity Code 3.2.2.2  */
+	if (cic) {
+		cic_sw = htons(*cic);
+		msgb_tv_fixed_put(msg, GSM0808_IE_CIRCUIT_IDENTITY_CODE,
+				  sizeof(cic_sw), (uint8_t *) & cic_sw);
+	}
+
+	/* AoIP: AoIP Transport Layer Address (MGW) 3.2.2.102 */
+	if (ss) {
+		ss_encoded = gsm0808_enc_aoip_trasp_addr(ss);
+		if (!ss_encoded) {
+			msgb_free(msg);
+			return NULL;
+		}
+		msgb_tlv_put(msg, GSM0808_IE_AOIP_TRASP_ADDR,
+			     ss_encoded->len, ss_encoded->data);
+		msgb_free(ss_encoded);
+	}
+
+	/* AoIP: Codec List (MSC Preferred) 3.2.2.103 */
+	if (scl) {
+		scl_encoded = gsm0808_enc_speech_codec_list(scl);
+		if (!scl_encoded) {
+			msgb_free(msg);
+			return NULL;
+		}
+		msgb_tlv_put(msg, GSM0808_IE_SPEECH_CODEC_LIST,
+			     scl_encoded->len, scl_encoded->data);
+		msgb_free(scl_encoded);
+	}
+
+	/* AoIP: Call Identifier 3.2.2.105 */
+	if (ci) {
+		ci_sw = htonl(*ci);
+		msgb_tv_fixed_put(msg, GSM0808_IE_CALL_ID, sizeof(ci_sw),
+				  (uint8_t *) & ci_sw);
+	}
+
+	/* push the bssmap header */
+	msg->l3h =
+	    msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
+
+	return msg;
+}
+
 struct msgb *gsm0808_create_assignment_completed_aoip(uint8_t rr_cause,
 						      uint8_t chosen_channel,
 						      uint8_t encr_alg_id,
